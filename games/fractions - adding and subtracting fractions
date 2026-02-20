@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Trophy, Star, Zap, PartyPopper } from 'lucide-react';
+import { Sparkles, Trophy, Star, Zap, PartyPopper, ArrowRight } from 'lucide-react';
 
 const FOODS = [
   { name: 'Pizza', emoji: '🍕', color: 'bg-orange-100', image: 'https://replicate.delivery/xezq/AQ4XrXO5Ow5qBt33PbM734fvyfekK8Glo6WeR1A7peSR4iLxC/output_407503.jpeg' },
@@ -14,92 +14,74 @@ const FOODS = [
   { name: 'Apple', emoji: '🍎', color: 'bg-green-100', image: 'https://replicate.delivery/xezq/dxjHYJVIv5KcOR6bvEUKM80Comef495CNPt363XfGFJQu4SsA/output_605289.jpeg' },
 ];
 
-function generateQuestion(questionNumber) {
+function generateLevel1Question(questionNumber) {
   const isAddition = Math.random() > 0.5;
+  const denom = Math.min(3 + questionNumber, 10);
+  const num1 = Math.floor(Math.random() * (denom - 1)) + 1;
+  
   let frac1, frac2, answer;
   
-  if (questionNumber <= 5) {
-    // Questions 1-5: Same denominator
-    const denom = Math.min(3 + questionNumber, 8);
-    const num1 = Math.floor(Math.random() * (denom - 1)) + 1;
+  if (isAddition) {
+    const maxNum2 = denom - num1;
+    const num2 = Math.max(1, Math.floor(Math.random() * maxNum2) + 1);
+    frac1 = { num: num1, denom };
+    frac2 = { num: num2, denom };
+    answer = { num: num1 + num2, denom };
+  } else {
+    const num2 = Math.max(1, Math.floor(Math.random() * (num1 - 1)) + 1);
+    frac1 = { num: num1, denom };
+    frac2 = { num: num2, denom };
+    answer = { num: num1 - num2, denom };
+  }
+  
+  const food = FOODS[Math.floor(Math.random() * FOODS.length)];
+  return { frac1, frac2, answer, food, isAddition };
+}
+
+function generateLevel2Question(questionNumber) {
+  const isAddition = Math.random() > 0.5;
+  const denominators = [2, 3, 4, 5, 6];
+  const denom1 = denominators[Math.floor(Math.random() * denominators.length)];
+  let denom2 = denominators[Math.floor(Math.random() * denominators.length)];
+  
+  while (denom2 === denom1) {
+    denom2 = denominators[Math.floor(Math.random() * denominators.length)];
+  }
+  
+  const commonDenom = denom1 * denom2;
+  const num1 = Math.floor(Math.random() * (denom1 - 1)) + 1;
+  const convertedNum1 = num1 * denom2;
+  
+  let frac1, frac2, answer;
+  
+  if (isAddition) {
+    const num2 = Math.floor(Math.random() * (denom2 - 1)) + 1;
+    const convertedNum2 = num2 * denom1;
+    const resultNum = convertedNum1 + convertedNum2;
     
-    if (isAddition) {
-      const maxNum2 = denom - num1 - 1;
-      const num2 = Math.max(1, Math.floor(Math.random() * maxNum2) + 1);
-      frac1 = { num: num1, denom };
-      frac2 = { num: num2, denom };
-      answer = { num: num1 + num2, denom };
+    if (resultNum <= commonDenom && resultNum > 0) {
+      frac1 = { num: num1, denom: denom1 };
+      frac2 = { num: num2, denom: denom2 };
+      answer = { num: resultNum, denom: commonDenom };
     } else {
-      const num2 = Math.max(1, Math.floor(Math.random() * num1));
-      if (num2 === 0 || num1 - num2 === 0) {
-        const adjustedNum2 = Math.max(1, Math.min(num2 + 1, num1 - 1));
-        frac1 = { num: num1, denom };
-        frac2 = { num: adjustedNum2, denom };
-        answer = { num: num1 - adjustedNum2, denom };
-      } else {
-        frac1 = { num: num1, denom };
-        frac2 = { num: num2, denom };
-        answer = { num: num1 - num2, denom };
-      }
+      frac1 = { num: 1, denom: denom1 };
+      frac2 = { num: 1, denom: denom2 };
+      answer = { num: denom1 + denom2, denom: commonDenom };
     }
   } else {
-    // Questions 6-10: Different denominators (simple ones)
-    const denominators = [2, 3, 4, 5, 6];
-    const denom1 = denominators[Math.floor(Math.random() * denominators.length)];
-    let denom2 = denominators[Math.floor(Math.random() * denominators.length)];
+    const num2 = Math.floor(Math.random() * (denom2 - 1)) + 1;
+    const convertedNum2 = num2 * denom1;
     
-    // Ensure different denominators
-    while (denom2 === denom1) {
-      denom2 = denominators[Math.floor(Math.random() * denominators.length)];
-    }
-    
-    const commonDenom = denom1 * denom2;
-    const num1 = Math.floor(Math.random() * (denom1 - 1)) + 1;
-    const convertedNum1 = num1 * denom2;
-    
-    if (isAddition) {
-      const num2 = Math.floor(Math.random() * (denom2 - 1)) + 1;
-      const convertedNum2 = num2 * denom1;
-      const resultNum = convertedNum1 + convertedNum2;
-      
-      // Ensure result doesn't exceed 10 in numerator after simplification
-      if (resultNum <= commonDenom && resultNum > 0) {
-        frac1 = { num: num1, denom: denom1 };
-        frac2 = { num: num2, denom: denom2 };
-        answer = { num: resultNum, denom: commonDenom };
-      } else {
-        // Fallback to simpler values
-        frac1 = { num: 1, denom: denom1 };
-        frac2 = { num: 1, denom: denom2 };
-        answer = { num: denom1 + denom2, denom: commonDenom };
-      }
+    if (convertedNum1 > convertedNum2) {
+      const resultNum = convertedNum1 - convertedNum2;
+      frac1 = { num: num1, denom: denom1 };
+      frac2 = { num: num2, denom: denom2 };
+      answer = { num: resultNum, denom: commonDenom };
     } else {
-      const num2 = Math.floor(Math.random() * (denom2 - 1)) + 1;
-      const convertedNum2 = num2 * denom1;
-      
-      if (convertedNum1 > convertedNum2) {
-        const resultNum = convertedNum1 - convertedNum2;
-        if (resultNum > 0) {
-          frac1 = { num: num1, denom: denom1 };
-          frac2 = { num: num2, denom: denom2 };
-          answer = { num: resultNum, denom: commonDenom };
-        } else {
-          frac1 = { num: num1, denom: denom1 };
-          frac2 = { num: 1, denom: denom2 };
-          answer = { num: convertedNum1 - denom1, denom: commonDenom };
-        }
-      } else {
-        const resultNum = convertedNum2 - convertedNum1;
-        if (resultNum > 0) {
-          frac1 = { num: num2, denom: denom2 };
-          frac2 = { num: num1, denom: denom1 };
-          answer = { num: resultNum, denom: commonDenom };
-        } else {
-          frac1 = { num: 2, denom: denom2 };
-          frac2 = { num: 1, denom: denom1 };
-          answer = { num: 2 * denom1 - denom2, denom: commonDenom };
-        }
-      }
+      const resultNum = convertedNum2 - convertedNum1;
+      frac1 = { num: num2, denom: denom2 };
+      frac2 = { num: num1, denom: denom1 };
+      answer = { num: resultNum, denom: commonDenom };
     }
   }
   
@@ -153,6 +135,57 @@ function FractionVisual({ num, denom, food }) {
   );
 }
 
+function Level1CompleteScreen({ score, onContinue }) {
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="max-w-2xl w-full shadow-2xl animate-in zoom-in">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center text-8xl animate-bounce">
+            🎊
+          </div>
+          <CardTitle className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-cyan-600 bg-clip-text text-transparent">
+            Level 1 Complete!
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="text-center">
+            <div className="text-6xl font-bold text-primary mb-4">{score}</div>
+            <div className="text-2xl text-muted-foreground">Current Score</div>
+          </div>
+          <div className="bg-blue-50 p-6 rounded-lg">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+              <Sparkles className="text-yellow-500" />
+              What You Learned in Level 1:
+            </h3>
+            <ul className="space-y-2 text-sm">
+              <li>✅ <strong>Same Denominators:</strong> When fractions have the same bottom number, just add or subtract the top numbers!</li>
+              <li>✅ <strong>Keep the Denominator:</strong> The bottom number stays the same when adding or subtracting!</li>
+              <li>✅ <strong>Simplifying:</strong> You can simplify your answer, but both forms are correct (like 6/9 and 2/3)!</li>
+            </ul>
+          </div>
+          <div className="bg-gradient-to-r from-purple-100 to-pink-100 p-6 rounded-lg border-2 border-purple-300">
+            <h3 className="font-bold text-lg mb-2 flex items-center gap-2">
+              <Star className="text-purple-600" />
+              Ready for Level 2?
+            </h3>
+            <p className="text-sm text-muted-foreground">
+              In Level 2, you'll work with fractions that have <strong>different denominators</strong>! You'll need to find a common denominator first. Let's go!
+            </p>
+          </div>
+          <Button 
+            onClick={onContinue}
+            size="lg"
+            className="w-full text-xl py-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+          >
+            <ArrowRight className="mr-2" />
+            Continue to Level 2!
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 function GameCompleteScreen({ score, onRestart }) {
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
@@ -176,8 +209,8 @@ function GameCompleteScreen({ score, onRestart }) {
               What You Learned:
             </h3>
             <ul className="space-y-2 text-sm">
-              <li>✅ <strong>Same Denominators:</strong> Add or subtract numerators, keep the denominator!</li>
-              <li>✅ <strong>Different Denominators:</strong> Find a common denominator first, then add or subtract!</li>
+              <li>✅ <strong>Level 1 - Same Denominators:</strong> Add or subtract numerators, keep the denominator!</li>
+              <li>✅ <strong>Level 2 - Different Denominators:</strong> Find a common denominator first, then add or subtract!</li>
               <li>✅ <strong>Simplifying:</strong> Always reduce fractions to their simplest form when possible!</li>
               <li>✅ <strong>Positive Results:</strong> Make sure your final answer is always positive!</li>
             </ul>
@@ -197,15 +230,17 @@ function GameCompleteScreen({ score, onRestart }) {
 }
 
 export default function Block() {
+  const [level, setLevel] = useState(1);
   const [questionNumber, setQuestionNumber] = useState(1);
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
-  const [question, setQuestion] = useState(generateQuestion(1));
+  const [question, setQuestion] = useState(generateLevel1Question(1));
   const [feedback, setFeedback] = useState(null);
   const [userNum, setUserNum] = useState('');
   const [userDenom, setUserDenom] = useState('');
   const [gameStarted, setGameStarted] = useState(false);
   const [showHint, setShowHint] = useState(false);
+  const [showLevel1Complete, setShowLevel1Complete] = useState(false);
   const [gameComplete, setGameComplete] = useState(false);
 
   const handleSubmit = () => {
@@ -230,7 +265,6 @@ export default function Block() {
       return;
     }
 
-    // Check if fractions are equal (accepts both simplified and unsimplified)
     const correct = fractionsEqual(userNumInt, userDenomInt, question.answer.num, question.answer.denom);
     
     if (correct) {
@@ -240,11 +274,14 @@ export default function Block() {
       setShowHint(false);
       
       setTimeout(() => {
-        if (questionNumber >= 10) {
+        if (level === 1 && questionNumber >= 10) {
+          setShowLevel1Complete(true);
+        } else if (level === 2 && questionNumber >= 10) {
           setGameComplete(true);
         } else {
           setQuestionNumber(prev => prev + 1);
-          setQuestion(generateQuestion(questionNumber + 1));
+          const nextQuestion = level === 1 ? generateLevel1Question(questionNumber + 1) : generateLevel2Question(questionNumber + 1);
+          setQuestion(nextQuestion);
           setFeedback(null);
           setUserNum('');
           setUserDenom('');
@@ -263,14 +300,26 @@ export default function Block() {
 
   const startGame = () => {
     setGameStarted(true);
+    setLevel(1);
     setQuestionNumber(1);
     setScore(0);
     setStreak(0);
-    setQuestion(generateQuestion(1));
+    setQuestion(generateLevel1Question(1));
     setUserNum('');
     setUserDenom('');
     setShowHint(false);
+    setShowLevel1Complete(false);
     setGameComplete(false);
+  };
+
+  const continueToLevel2 = () => {
+    setLevel(2);
+    setQuestionNumber(1);
+    setQuestion(generateLevel2Question(1));
+    setUserNum('');
+    setUserDenom('');
+    setShowHint(false);
+    setShowLevel1Complete(false);
   };
 
   const restartGame = () => {
@@ -300,11 +349,11 @@ export default function Block() {
                 How to Play:
               </h3>
               <ul className="space-y-2 text-sm">
-                <li>🎨 <strong>10 Questions:</strong> Answer all 10 questions with increasing difficulty!</li>
+                <li>🎨 <strong>Two Levels:</strong> Level 1 has same denominators, Level 2 has different denominators!</li>
+                <li>🎯 <strong>10 Questions Each:</strong> Complete 10 questions per level with increasing difficulty!</li>
                 <li>✏️ <strong>Enter Your Answer:</strong> Type the numerator (top) and denominator (bottom) in the boxes!</li>
                 <li>✅ <strong>Simplified or Not:</strong> Both 6/9 and 2/3 are accepted as correct!</li>
                 <li>⭐ <strong>Streak Bonus:</strong> Get more points for correct answers in a row!</li>
-                <li>🏆 <strong>Level Up:</strong> Questions get harder as you progress!</li>
               </ul>
             </div>
             <Button 
@@ -329,7 +378,7 @@ export default function Block() {
           <div className="flex gap-3">
             <Badge variant="secondary" className="text-lg px-4 py-2">
               <Trophy className="w-4 h-4 mr-2" />
-              Question {questionNumber}/10
+              Level {level} - Question {questionNumber}/10
             </Badge>
             <Badge variant="secondary" className="text-lg px-4 py-2">
               <Star className="w-4 h-4 mr-2 text-yellow-500" />
@@ -348,7 +397,7 @@ export default function Block() {
           <CardContent className="pt-6">
             <div className="space-y-2">
               <div className="flex justify-between text-sm text-muted-foreground">
-                <span>Game Progress</span>
+                <span>Level {level} Progress</span>
                 <span>{questionNumber}/10 questions</span>
               </div>
               <Progress value={(questionNumber / 10) * 100} className="h-3" />
@@ -360,8 +409,11 @@ export default function Block() {
         <Card className="shadow-xl">
           <CardHeader>
             <CardTitle className="text-center text-2xl">
-              {question.isAddition ? '➕ Add' : '➖ Subtract'} these fractions!
+              {level === 1 ? '📘 Level 1: Same Denominators' : '📗 Level 2: Different Denominators'}
             </CardTitle>
+            <p className="text-center text-muted-foreground">
+              {question.isAddition ? '➕ Add' : '➖ Subtract'} these fractions!
+            </p>
           </CardHeader>
           <CardContent>
             <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
@@ -435,6 +487,11 @@ export default function Block() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Level 1 Complete Modal */}
+      {showLevel1Complete && (
+        <Level1CompleteScreen score={score} onContinue={continueToLevel2} />
+      )}
 
       {/* Game Complete Modal */}
       {gameComplete && (

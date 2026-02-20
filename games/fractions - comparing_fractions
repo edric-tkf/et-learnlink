@@ -1,0 +1,411 @@
+import { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Badge } from '@/components/ui/badge';
+import { Sparkles, Trophy, Star, Zap, PartyPopper } from 'lucide-react';
+
+const FOODS = [
+  { name: 'Pizza', emoji: '🍕', color: 'bg-orange-100', image: 'https://replicate.delivery/xezq/AQ4XrXO5Ow5qBt33PbM734fvyfekK8Glo6WeR1A7peSR4iLxC/output_407503.jpeg' },
+  { name: 'Chocolate', emoji: '🍫', color: 'bg-amber-100', image: 'https://replicate.delivery/xezq/7XW4lmW3NDbsA1DWYC43xfWtDfXIo2pQ5oifbFNMeqjOcxlYB/output_740855.jpeg' },
+  { name: 'Watermelon', emoji: '🍉', color: 'bg-red-100', image: 'https://replicate.delivery/xezq/z0fFlj61hRxf5UeumdfvgfLxsYReHXWeij2Pq8QP7SfhCbcJWA/output_113162.jpeg' },
+  { name: 'Cake', emoji: '🍰', color: 'bg-pink-100', image: 'https://replicate.delivery/xezq/HvI2cM4ftfrgzUMeU3NPhdfHQSk3MGjLWUbUXeSEXCeeiLuELA/output_237013.jpeg' },
+  { name: 'Apple', emoji: '🍎', color: 'bg-green-100', image: 'https://replicate.delivery/xezq/dxjHYJVIv5KcOR6bvEUKM80Comef495CNPt363XfGFJQu4SsA/output_605289.jpeg' },
+];
+
+function generateQuestion(level) {
+  const useCommonNumerator = Math.random() > 0.5;
+  let frac1, frac2;
+  
+  if (level <= 3) {
+    if (useCommonNumerator) {
+      const num = Math.floor(Math.random() * 3) + 1;
+      const denom1 = Math.floor(Math.random() * 4) + 2;
+      let denom2 = Math.floor(Math.random() * 4) + 2;
+      while (denom2 === denom1) denom2 = Math.floor(Math.random() * 4) + 2;
+      frac1 = { num, denom: denom1 };
+      frac2 = { num, denom: denom2 };
+    } else {
+      const denom = Math.floor(Math.random() * 4) + 2;
+      const num1 = Math.floor(Math.random() * (denom - 1)) + 1;
+      let num2 = Math.floor(Math.random() * (denom - 1)) + 1;
+      while (num2 === num1) num2 = Math.floor(Math.random() * (denom - 1)) + 1;
+      frac1 = { num: num1, denom };
+      frac2 = { num: num2, denom };
+    }
+  } else {
+    if (useCommonNumerator) {
+      const num = Math.floor(Math.random() * 5) + 1;
+      const denom1 = Math.floor(Math.random() * 6) + 2;
+      let denom2 = Math.floor(Math.random() * 6) + 2;
+      while (denom2 === denom1) denom2 = Math.floor(Math.random() * 6) + 2;
+      frac1 = { num, denom: denom1 };
+      frac2 = { num, denom: denom2 };
+    } else {
+      const denom = Math.floor(Math.random() * 6) + 2;
+      const num1 = Math.floor(Math.random() * (denom - 1)) + 1;
+      let num2 = Math.floor(Math.random() * (denom - 1)) + 1;
+      while (num2 === num1) num2 = Math.floor(Math.random() * (denom - 1)) + 1;
+      frac1 = { num: num1, denom };
+      frac2 = { num: num2, denom };
+    }
+  }
+  
+  const food = FOODS[Math.floor(Math.random() * FOODS.length)];
+  const val1 = frac1.num / frac1.denom;
+  const val2 = frac2.num / frac2.denom;
+  const bigger = val1 > val2 ? 'left' : 'right';
+  
+  return { frac1, frac2, food, bigger, useCommonNumerator };
+}
+
+function FractionVisual({ num, denom, food, onPiecesChange, userNum, showAnswer }) {
+  const pieces = Array.from({ length: denom }, (_, i) => i);
+  const displayNum = userNum !== null ? userNum : 0;
+  
+  const handlePieceClick = (index) => {
+    if (index < displayNum) {
+      onPiecesChange(displayNum - 1);
+    } else {
+      onPiecesChange(displayNum + 1);
+    }
+  };
+  
+  return (
+    <div className="flex flex-col items-center gap-4">
+      {/* Only show fraction when showAnswer is true */}
+      {showAnswer && (
+        <div className="flex flex-col items-center">
+          <div className="text-5xl font-bold text-primary pb-1">{displayNum}</div>
+          <div className="w-16 h-1 bg-primary"></div>
+          <div className="text-5xl font-bold text-primary pt-1">{denom}</div>
+        </div>
+      )}
+      
+      <div className={`grid gap-2 p-4 rounded-lg ${food.color}`}
+           style={{
+             gridTemplateColumns: `repeat(${Math.min(denom, 4)}, 1fr)`,
+           }}>
+        {pieces.map((i) => (
+          <button
+            key={i}
+            onClick={() => handlePieceClick(i)}
+            className={`w-16 h-16 rounded-lg border-2 transition-all flex items-center justify-center
+              ${i < displayNum 
+                ? 'bg-primary border-primary shadow-md scale-105' 
+                : 'bg-white border-gray-300 opacity-40'}
+              cursor-pointer hover:scale-110
+            `}
+          >
+            {i < displayNum && (
+              <img src={food.image} alt={food.name} className="w-12 h-12 object-contain" />
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LevelCompleteScreen({ level, onContinue }) {
+  const learningPoints = {
+    1: "When the denominators (bottom numbers) are the SAME, the fraction with the BIGGER numerator (top number) is bigger!",
+    2: "When the numerators (top numbers) are the SAME, the fraction with the SMALLER denominator (bottom number) is bigger!",
+    3: "Remember: Same denominator = compare numerators. Same numerator = smaller denominator wins!",
+  };
+
+  const point = learningPoints[level] || "Great job! Keep comparing fractions carefully!";
+
+  return (
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <Card className="max-w-2xl w-full shadow-2xl animate-in zoom-in">
+        <CardHeader className="text-center space-y-4">
+          <div className="flex justify-center text-8xl animate-bounce">
+            🎉
+          </div>
+          <CardTitle className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+            Level {level} Complete!
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          <div className="bg-blue-50 p-6 rounded-lg">
+            <h3 className="font-bold text-lg mb-3 flex items-center gap-2">
+              <Sparkles className="text-yellow-500" />
+              What You Learned:
+            </h3>
+            <p className="text-lg">{point}</p>
+          </div>
+          <Button 
+            onClick={onContinue}
+            size="lg"
+            className="w-full text-xl py-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+          >
+            <PartyPopper className="mr-2" />
+            Continue to Level {level + 1}!
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
+export default function Block() {
+  const [level, setLevel] = useState(1);
+  const [score, setScore] = useState(0);
+  const [streak, setStreak] = useState(0);
+  const [question, setQuestion] = useState(generateQuestion(1));
+  const [feedback, setFeedback] = useState(null);
+  const [userFrac1, setUserFrac1] = useState(null);
+  const [userFrac2, setUserFrac2] = useState(null);
+  const [questionsInLevel, setQuestionsInLevel] = useState(0);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [showHint, setShowHint] = useState(false);
+  const [showLevelComplete, setShowLevelComplete] = useState(false);
+  const [questionsNeeded, setQuestionsNeeded] = useState(3);
+
+  const handleAnswer = (answer) => {
+    // Check if user has filled both fractions
+    if (userFrac1 === null || userFrac2 === null) {
+      setFeedback({ type: 'error', message: '⚠️ Fill in both fractions first!' });
+      setTimeout(() => setFeedback(null), 2000);
+      return;
+    }
+
+    // Check if user fractions match the question
+    if (userFrac1 !== question.frac1.num || userFrac2 !== question.frac2.num) {
+      setFeedback({ type: 'error', message: '⚠️ Make sure your fractions match the numbers shown!' });
+      setTimeout(() => setFeedback(null), 2000);
+      return;
+    }
+    
+    const correct = answer === question.bigger;
+    
+    if (correct) {
+      setScore(prev => prev + 10 + (streak * 2));
+      setStreak(prev => prev + 1);
+      setFeedback({ type: 'success', message: '🎉 Awesome! You got it!' });
+      setShowHint(false);
+      
+      const newQuestionsInLevel = questionsInLevel + 1;
+      setQuestionsInLevel(newQuestionsInLevel);
+      
+      setTimeout(() => {
+        if (newQuestionsInLevel >= questionsNeeded) {
+          setShowLevelComplete(true);
+        } else {
+          setQuestion(generateQuestion(level));
+          setFeedback(null);
+          setUserFrac1(null);
+          setUserFrac2(null);
+        }
+      }, 1500);
+    } else {
+      setStreak(0);
+      setShowHint(true);
+      setQuestionsNeeded(prev => prev + 3);
+      setFeedback({ type: 'error', message: '💪 Not quite! Check the hint below and try the next question!' });
+      
+      setTimeout(() => {
+        setQuestion(generateQuestion(level));
+        setFeedback(null);
+        setUserFrac1(null);
+        setUserFrac2(null);
+      }, 3000);
+    }
+  };
+
+  const startGame = () => {
+    setGameStarted(true);
+    setLevel(1);
+    setScore(0);
+    setStreak(0);
+    setQuestionsInLevel(0);
+    setQuestionsNeeded(3);
+    setQuestion(generateQuestion(1));
+    setUserFrac1(null);
+    setUserFrac2(null);
+    setShowHint(false);
+  };
+
+  const handleLevelComplete = () => {
+    setShowLevelComplete(false);
+    setLevel(prev => prev + 1);
+    setQuestionsInLevel(0);
+    setQuestionsNeeded(level === 1 ? 3 : level === 2 ? 5 : 8);
+    setQuestion(generateQuestion(level + 1));
+    setUserFrac1(null);
+    setUserFrac2(null);
+    setShowHint(false);
+  };
+
+  if (!gameStarted) {
+    return (
+      <div className="container min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+        <Card className="max-w-2xl w-full shadow-2xl">
+          <CardHeader className="text-center space-y-4">
+            <div className="flex justify-center gap-2 text-6xl">
+              🍕🍰🍉
+            </div>
+            <CardTitle className="text-4xl font-bold bg-gradient-to-r from-purple-600 to-pink-600 bg-clip-text text-transparent">
+              Fraction Food Fight!
+            </CardTitle>
+            <p className="text-lg text-muted-foreground">
+              Compare fractions and become a Fraction Master! 🏆
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="bg-blue-50 p-6 rounded-lg space-y-3">
+              <h3 className="font-bold text-lg flex items-center gap-2">
+                <Sparkles className="text-yellow-500" />
+                How to Play:
+              </h3>
+              <ul className="space-y-2 text-sm">
+                <li>🎨 <strong>Build Fractions:</strong> Click the boxes to fill in your fractions!</li>
+                <li>🎯 <strong>Compare:</strong> Once both fractions are filled, pick which one is bigger!</li>
+                <li>⭐ <strong>Streak Bonus:</strong> Get more points for correct answers in a row!</li>
+                <li>🏆 <strong>Level Up:</strong> Answer questions correctly to unlock harder levels!</li>
+              </ul>
+            </div>
+            <Button 
+              onClick={startGame}
+              size="lg"
+              className="w-full text-xl py-6 bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+            >
+              <Zap className="mr-2" />
+              Start Playing!
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container min-h-screen py-8 bg-gradient-to-br from-purple-50 via-pink-50 to-orange-50">
+      <div className="content max-w-5xl mx-auto space-y-6">
+        {/* Header Stats */}
+        <div className="flex flex-wrap gap-4 justify-between items-center">
+          <div className="flex gap-3">
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              <Trophy className="w-4 h-4 mr-2" />
+              Level {level}
+            </Badge>
+            <Badge variant="secondary" className="text-lg px-4 py-2">
+              <Star className="w-4 h-4 mr-2 text-yellow-500" />
+              Score: {score}
+            </Badge>
+          </div>
+          {streak > 0 && (
+            <Badge className="text-lg px-4 py-2 bg-gradient-to-r from-orange-500 to-red-500 animate-pulse">
+              🔥 {streak} Streak!
+            </Badge>
+          )}
+        </div>
+
+        {/* Progress Bar */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="space-y-2">
+              <div className="flex justify-between text-sm text-muted-foreground">
+                <span>Progress to Next Level</span>
+                <span>{questionsInLevel}/{questionsNeeded} questions</span>
+              </div>
+              <Progress value={(questionsInLevel / questionsNeeded) * 100} className="h-3" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Main Question Card */}
+        <Card className="shadow-xl">
+          <CardHeader>
+            <CardTitle className="text-center text-2xl">
+              🎨 Build these fractions, then pick the bigger one!
+              <p className="text-sm text-muted-foreground mt-2">Click the boxes to add or remove {question.food.name} pieces</p>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col md:flex-row gap-8 items-center justify-center">
+              <div className="text-center">
+                <div className="mb-4 text-lg font-semibold text-muted-foreground">Build this:</div>
+                <div className="flex flex-col items-center mb-4">
+                  <div className="text-4xl font-bold text-gray-400 pb-1">{question.frac1.num}</div>
+                  <div className="w-12 h-1 bg-gray-400"></div>
+                  <div className="text-4xl font-bold text-gray-400 pt-1">{question.frac1.denom}</div>
+                </div>
+                <FractionVisual 
+                  {...question.frac1} 
+                  food={question.food}
+                  onPiecesChange={setUserFrac1}
+                  userNum={userFrac1}
+                  showAnswer={false}
+                />
+              </div>
+              
+              <div className="text-4xl font-bold text-muted-foreground">VS</div>
+              
+              <div className="text-center">
+                <div className="mb-4 text-lg font-semibold text-muted-foreground">Build this:</div>
+                <div className="flex flex-col items-center mb-4">
+                  <div className="text-4xl font-bold text-gray-400 pb-1">{question.frac2.num}</div>
+                  <div className="w-12 h-1 bg-gray-400"></div>
+                  <div className="text-4xl font-bold text-gray-400 pt-1">{question.frac2.denom}</div>
+                </div>
+                <FractionVisual 
+                  {...question.frac2} 
+                  food={question.food}
+                  onPiecesChange={setUserFrac2}
+                  userNum={userFrac2}
+                  showAnswer={false}
+                />
+              </div>
+            </div>
+
+            {/* Answer Buttons */}
+            <div className="flex gap-4 justify-center mt-8">
+              <Button
+                size="lg"
+                onClick={() => handleAnswer('left')}
+                disabled={feedback !== null}
+                className="text-xl px-8 py-6 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600"
+              >
+                ← Left is Bigger
+              </Button>
+              <Button
+                size="lg"
+                onClick={() => handleAnswer('right')}
+                disabled={feedback !== null}
+                className="text-xl px-8 py-6 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600"
+              >
+                Right is Bigger →
+              </Button>
+            </div>
+
+            {/* Feedback */}
+            {feedback && (
+              <div className={`mt-6 p-4 rounded-lg text-center text-xl font-bold animate-bounce
+                ${feedback.type === 'success' ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}
+              `}>
+                {feedback.message}
+              </div>
+            )}
+
+            {/* Hint - Only show after wrong answer */}
+            {showHint && (
+              <div className="mt-6 p-4 bg-yellow-50 border-2 border-yellow-300 rounded-lg text-center text-sm">
+                <div className="font-bold text-lg mb-2">💡 Hint:</div>
+                <p>{question.useCommonNumerator 
+                  ? 'The numerators (top numbers) are the same! When numerators are equal, the fraction with the SMALLER denominator (bottom number) is bigger!' 
+                  : 'The denominators (bottom numbers) are the same! When denominators are equal, the fraction with the BIGGER numerator (top number) is bigger!'}</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Level Complete Modal */}
+      {showLevelComplete && (
+        <LevelCompleteScreen level={level} onContinue={handleLevelComplete} />
+      )}
+    </div>
+  );
+}
